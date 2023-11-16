@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model employee {
+  id              Int            @id @default(autoincrement())
+  first_name      String
+  last_name       String
+  birth_date      DateTime       @db.Timestamp(0)
+  email           String
+  gender          String
+  address         String
+  username        String         @unique
+  password        String
+  auth            Int
+  dep_id          Int?
+  date_employed   DateTime       @db.Timestamp(0)
+  phone           String
+  status          String
+  role            String
+  approval_docs   approval_doc[]
+  dep_appr1       dep_appr[]     @relation("first_appr")
+  dep_appr2       dep_appr[]     @relation("second_appr")
+  dep             department?    @relation(fields: [dep_id], references: [id])
+  first_receiver  notification[] @relation("first_receiver")
+  second_receiver notification[] @relation("second_receiver")
+  sender          notification[] @relation("sender")
+  time_record     time_record[]
+}
+
+model department {
+  id           Int            @id @default(autoincrement())
+  dep_name     String
+  approval_doc approval_doc[]
+  dep_appr     dep_appr?
+  employee     employee[]
+}
+
+model dep_appr {
+  id          Int        @id @default(autoincrement())
+  dep_id      Int        @unique
+  first_appr  Int?
+  second_appr Int?
+  dep         department @relation(fields: [dep_id], references: [id], onDelete: Cascade)
+  emp1_appr   employee?  @relation("first_appr", fields: [first_appr], references: [id])
+  emp2_appr   employee?  @relation("second_appr", fields: [second_appr], references: [id])
+}
+
+model leave_type {
+  id            Int             @id @default(autoincrement())
+  type_name     String
+  fixed_quota   Int?
+  type          String
+  approval_doc  approval_doc[]
+  type_quantity type_quantity[]
+}
+
+model type_quantity {
+  id       Int        @id @default(autoincrement())
+  type_id  Int
+  year     Int
+  quantity Int
+  type     leave_type @relation(fields: [type_id], references: [id], onDelete: Cascade)
+}
+
+model approval_doc {
+  id                 Int            @id @default(autoincrement())
+  emp_id             Int
+  dep_id             Int?
+  type_id            Int?
+  start_date         DateTime       @db.Timestamp(0)
+  end_date           DateTime       @db.Timestamp(0)
+  reason             String
+  written_place      String
+  backup_contact     String
+  attachment         String?
+  status             String
+  amount             Int
+  first_appr_at      DateTime?      @db.Timestamp(0)
+  second_appr_at     DateTime?      @db.Timestamp(0)
+  status_first_appr  String?
+  status_second_appr String?
+  dep                department?    @relation(fields: [dep_id], references: [id])
+  emp                employee       @relation(fields: [emp_id], references: [id], onDelete: Cascade)
+  type               leave_type?    @relation(fields: [type_id], references: [id])
+  notification       notification[] @relation("doc_id")
+}
+
+model time_record {
+  id          Int       @id @default(autoincrement())
+  emp_id      Int
+  date        DateTime  @db.Timestamp(0)
+  clock_in    DateTime  @db.Timestamp(0)
+  clock_out   DateTime? @db.Timestamp(0)
+  total_hours Decimal?  @db.Decimal(4, 2)
+  emp         employee  @relation(fields: [emp_id], references: [id], onDelete: Cascade)
+}
+
+model holiday {
+  id         Int       @id @default(autoincrement())
+  name       String
+  start_date DateTime  @unique @db.Timestamp(0)
+  end_date   DateTime? @unique @db.Timestamp(0)
+}
+
+model notification {
+  id              Int          @id @default(autoincrement())
+  noti_type       String
+  sender_id       Int?
+  first_receiver  Int?
+  second_receiver Int?
+  doc_id          Int
+  created_at      DateTime     @db.Timestamp(0)
+  is_seen_first   Int?
+  is_seen_second  Int?
+  docId           approval_doc @relation("doc_id", fields: [doc_id], references: [id], onDelete: Cascade)
+  firstReceiver   employee?    @relation("first_receiver", fields: [first_receiver], references: [id], onDelete: Cascade)
+  secondReceiver  employee?    @relation("second_receiver", fields: [second_receiver], references: [id], onDelete: Cascade)
+  sender          employee?    @relation("sender", fields: [sender_id], references: [id], onDelete: Cascade)
+}
+
+model work_hour {
+  id         Int      @id
+  start_time DateTime @db.Timestamptz(6)
+  end_time   DateTime @db.Timestamptz(6)
+}
